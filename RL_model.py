@@ -56,9 +56,10 @@ class FoodWasteEnv(gym.Env):
         ])
 
         reward = (
-            tons_diversion * 0.5 + 
+            tons_diversion * 0.4 + 
             co2_reduction * 0.3 + 
-            water_savings * 0.1 - 
+            water_savings * 0.1 +
+            financial_benefit * 0.1 - 
             solution['annual_us_dollars_cost'] * 0.1
         )
 
