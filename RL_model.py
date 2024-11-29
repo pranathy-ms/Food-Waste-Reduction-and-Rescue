@@ -73,12 +73,8 @@ class FoodWasteEnv(gym.Env):
 
 # Function to load datasets
 def load_data():
-    solutions_df = pd.read_csv('ReFED_US_Food_Waste_Solutions_Detail.csv', skiprows=1, low_memory=False)
-    surplus_df = pd.read_csv('ReFED_US_Food_Surplus_Detail.csv', skiprows=1, low_memory=False)
-
-    # Filter for the "Retail" sector
-    solutions_df = solutions_df[solutions_df['sector'] == 'Retail']
-    surplus_df = surplus_df[surplus_df['sector'] == 'Retail']
+    solutions_df = pd.read_csv('food_waste_solutions_processed.csv', low_memory=False)
+    surplus_df = pd.read_csv('food_waste_surplus_processed.csv', low_memory=False)
 
     return solutions_df, surplus_df
 
