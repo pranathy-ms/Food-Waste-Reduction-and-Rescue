@@ -51,7 +51,7 @@ class FoodWasteEnv(gym.Env):
             max(self.state[0] - tons_diversion, 0),
             max(self.state[1] - tons_diversion, 0),
             max(self.state[2] - co2_reduction, 0),
-            self.state[3] + water_savings,
+            self.state[3] - water_savings,
             self.state[4] - financial_benefit
         ])
 
@@ -63,7 +63,7 @@ class FoodWasteEnv(gym.Env):
             solution['annual_us_dollars_cost'] * 0.1
         )
 
-        terminated = bool(self.state[0] <= 0 or self.state[1] <= 0)
+        terminated = bool(self.state[0] <= 10000000 or self.state[1] <= 10000000)
         truncated = False
 
         return self.state, reward, terminated, truncated, {}

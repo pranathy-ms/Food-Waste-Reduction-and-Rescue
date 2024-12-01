@@ -23,6 +23,7 @@ def evaluate_model(env, model, num_episodes=100):
             done = done or truncated  # Combine done and truncated
             total_reward += reward
             steps += 1
+            env.render()
 
         # Append metrics after each episode
         rewards.append(total_reward)
