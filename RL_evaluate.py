@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
-from RL_model import FoodWasteEnv, load_data  # Import the necessary components
+from RL_model import FoodWasteEnv, load_data 
 
 # Custom function to evaluate the trained model
 def evaluate_model(env, model, num_episodes=100):
@@ -18,7 +18,8 @@ def evaluate_model(env, model, num_episodes=100):
 
         # Run an episode
         while not done:
-            action, _states = model.predict(state, deterministic=True)
+            action, _states = model.predict(state, deterministic=False)
+            print("ACTION IS: ",action)
             state, reward, done, truncated, _ = env.step(action)
             done = done or truncated  # Combine done and truncated
             total_reward += reward
@@ -26,24 +27,21 @@ def evaluate_model(env, model, num_episodes=100):
             env.render()
 
         # Append metrics after each episode
-        rewards.append(total_reward)
+        rewards.append(total_reward/steps)
         surplus_metrics.append(state[0])  # Tons Surplus remaining
         emissions_metrics.append(state[2])  # CO2 emissions remaining
         episode_lengths.append(steps)
 
-    # Calculate average metrics
     avg_reward = np.mean(rewards)
     avg_surplus = np.mean(surplus_metrics)
     avg_emissions = np.mean(emissions_metrics)
     avg_episode_length = np.mean(episode_lengths)
 
-    # Print results
     print(f"Average Reward: {avg_reward}")
     print(f"Average Tons Surplus Remaining: {avg_surplus}")
     print(f"Average CO2 Emissions Remaining: {avg_emissions}")
     print(f"Average Episode Length: {avg_episode_length}")
 
-    # Plot rewards over episodes
     plt.figure(figsize=(12, 6))
     plt.plot(rewards, label="Episode Reward")
     plt.xlabel("Episode")

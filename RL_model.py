@@ -41,6 +41,8 @@ class FoodWasteEnv(gym.Env):
 
     def step(self, action):
         solution = self.solutions_df.iloc[action]
+
+        #print("ACTION  IS:",action)
         
         tons_diversion = solution['annual_tons_diversion_potential']
         co2_reduction = solution['annual_100_year_mtco2e_reduction_potential']
@@ -83,8 +85,21 @@ def train_model():
     solutions_df, surplus_df = load_data()
     env = FoodWasteEnv(solutions_df, surplus_df)
 
+    hyperparameters = {
+        'learning_rate': 0.003,
+        'n_steps': 2048,
+        'batch_size': 16,
+        'n_epochs': 10,
+        'gamma': 0.99,
+        'ent_coef': 0.01,
+        'clip_range': 0.2,
+        'tensorboard_log': './ppo_tensorboard'
+    }
+    
+
+    #learning_rate, n_steps, batch_size
     # Initialize and train the RL model
-    model = PPO("MlpPolicy", env, verbose=1)
+    model = PPO("MlpPolicy", env, verbose=1, **hyperparameters)
     model.learn(total_timesteps=10000)
     
     # Save the trained model
