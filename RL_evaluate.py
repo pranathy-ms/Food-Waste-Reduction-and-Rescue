@@ -9,27 +9,34 @@ def evaluate_model(env, model, num_episodes=100):
     surplus_metrics = []
     emissions_metrics = []
     episode_lengths = []
+    best_actions = []
 
     for episode in range(num_episodes):
         state, _ = env.reset()  # Reset now returns two values: observation and info
         done = False
         #total_reward = 0
-        #steps = 0
         total_reward = []
+        all_actions = []
         steps = 0
         total_sum = 0
 
         # Run an episode
         while not done:
             action, _states = model.predict(state, deterministic=False)
-            print("action is", action)
+            #print("action is", action)
             state, reward, done, truncated, _ = env.step(action)
             done = done or truncated  # Combine done and truncated
             #total_reward += reward
             total_reward.append(reward)
+            all_actions.append(action)
             steps += 1
         for i in range(len(total_reward)):
             total_sum += (total_reward[i] - np.mean(total_reward)) / (np.std(total_reward)+1e-10)
+
+        index = total_reward.index(max(total_reward))
+        print("Rewards, Action: ",total_reward[:12],best_actions[:12])
+        best_action = all_actions[index]
+        best_actions.append(best_action)
         
         # Append metrics after each episode
         rewards.append(total_sum)
@@ -59,6 +66,17 @@ def evaluate_model(env, model, num_episodes=100):
     print(f"Average Tons Surplus Remaining: {avg_surplus}")
     print(f"Average CO2 Emissions Remaining: {avg_emissions}")
     print(f"Average Episode Length: {avg_episode_length}")
+
+    solution_names = {}
+    for i in range(len(best_actions)):
+        current_solution = solutions_df["solution_name"][best_actions[i]]
+        if current_solution not in solution_names:
+            solution_names[current_solution] = 1
+        else:
+            solution_names[current_solution] += 1
+    print(solution_names)
+    for key in solution_names.keys():
+        print(key,solution_names[key])
 
     plt.figure(figsize=(12, 6))
     plt.plot(rewards, label="Episode Reward")

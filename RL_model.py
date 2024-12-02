@@ -1,5 +1,3 @@
-# RL_model.py
-
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
@@ -15,53 +13,82 @@ class FoodWasteEnv(gym.Env):
         self.solutions_df = solutions_df
         self.surplus_df = surplus_df
         
-        # Define action space: each action corresponds to applying a specific solution
-        self.action_space = spaces.Discrete(len(self.solutions_df))
+        # Create a mapping from food_type to integer
+        self.food_type_mapping = {food: idx for idx, food in enumerate(surplus_df['food_type'].unique())}
         
-        # Define observation space
+        # Define observation space including food_type as an integer index
         self.observation_space = spaces.Box(
-            low=0, high=np.inf, shape=(5,), dtype=np.float32
+            low=0, high=np.inf, shape=(6,), dtype=np.float32
         )
         
-        # Initialize state
-        self.state = self.reset()
+        # Initialize state and valid actions
+        self.state = None
+        self.valid_actions = None
+        
+        # Initialize environment state
+        self.reset()
 
     def reset(self, seed=None, options=None):
         if seed is not None:
             self.np_random, _ = gym.utils.seeding.np_random(seed)
         
+        # Initialize state with the first food type and its corresponding data
+        first_food_type = self.surplus_df['food_type'].iloc[0]
         self.state = np.array([
             self.surplus_df['tons_surplus'].sum(),
             self.surplus_df['tons_waste'].sum(),
             self.surplus_df['surplus_total_100_year_mtco2e_footprint'].sum(),
             self.surplus_df['gallons_water_footprint'].sum(),
-            self.surplus_df['us_dollars_surplus'].sum()
+            self.surplus_df['us_dollars_surplus'].sum(),
+            self.food_type_mapping[first_food_type]  # Map food type to integer
         ])
+        
+        # Filter actions for the initial food type
+        self.valid_actions = self.get_valid_actions(first_food_type)
+        
+        # Define action space based on valid actions for current food type
+        self.action_space = spaces.Discrete(len(self.valid_actions))
+        
         return self.state, {}
 
-    def step(self, action):
-        solution = self.solutions_df.iloc[action]
+    def get_valid_actions(self, food_type):
+        """Return a list of valid action indices for the given food type."""
+        return list(self.solutions_df[self.solutions_df['food_type'] == food_type].index)
 
-        #print("ACTION  IS:",action)
+    def step(self, action_index):
+        current_food_type_index = int(self.state[5])
+        
+        # Get the current food type string from the mapping
+        current_food_type = list(self.food_type_mapping.keys())[current_food_type_index]
+        
+        # Ensure action is within valid actions for current food type
+        if action_index >= len(self.valid_actions):
+            raise ValueError("Invalid action index for current food type.")
+        
+        # Map action index to actual solution index in DataFrame
+        solution_index = self.valid_actions[action_index]
+        solution = self.solutions_df.loc[solution_index]
         
         tons_diversion = solution['annual_tons_diversion_potential']
         co2_reduction = solution['annual_100_year_mtco2e_reduction_potential']
         water_savings = solution['annual_gallons_water_savings_potential']
         financial_benefit = solution['annual_us_dollars_net_financial_benefit']
         
+        # Update state based on selected solution's impact
         self.state = np.array([
             max(self.state[0] - tons_diversion, 0),
             max(self.state[1] - tons_diversion, 0),
             max(self.state[2] - co2_reduction, 0),
             self.state[3] - water_savings,
-            self.state[4] - financial_benefit
+            self.state[4] - financial_benefit,
+            current_food_type_index  # Keep current food type unchanged for simplicity
         ])
 
         reward = (
-            tons_diversion * 0.4 + 
-            co2_reduction * 0.3 + 
-            water_savings * 0.1 +
-            financial_benefit * 0.1 - 
+            tons_diversion * 0.3 + 
+            co2_reduction * 0.2 + 
+            water_savings * 0.2 +
+            financial_benefit * 0.2 - 
             solution['annual_us_dollars_cost'] * 0.1
         )
 
@@ -73,7 +100,7 @@ class FoodWasteEnv(gym.Env):
     def render(self, mode='human'):
         print(f"Current State: {self.state}")
 
-# Function to load datasets
+# Function to load datasets and create mappings
 def load_data():
     solutions_df = pd.read_csv('food_waste_solutions_processed.csv', low_memory=False)
     surplus_df = pd.read_csv('food_waste_surplus_processed.csv', low_memory=False)
@@ -96,8 +123,6 @@ def train_model():
         'tensorboard_log': './ppo_tensorboard'
     }
     
-
-    #learning_rate, n_steps, batch_size
     # Initialize and train the RL model
     model = PPO("MlpPolicy", env, verbose=1, **hyperparameters)
     model.learn(total_timesteps=10000)
