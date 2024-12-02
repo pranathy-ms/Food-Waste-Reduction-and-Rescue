@@ -13,21 +13,39 @@ def evaluate_model(env, model, num_episodes=100):
     for episode in range(num_episodes):
         state, _ = env.reset()  # Reset now returns two values: observation and info
         done = False
-        total_reward = 0
+        #total_reward = 0
+        #steps = 0
+        total_reward = []
         steps = 0
+        total_sum = 0
 
         # Run an episode
         while not done:
             action, _states = model.predict(state, deterministic=False)
-            print("ACTION IS: ",action)
+            print("action is", action)
             state, reward, done, truncated, _ = env.step(action)
             done = done or truncated  # Combine done and truncated
-            total_reward += reward
+            #total_reward += reward
+            total_reward.append(reward)
             steps += 1
-            env.render()
-
+        for i in range(len(total_reward)):
+            total_sum += (total_reward[i] - np.mean(total_reward)) / (np.std(total_reward)+1e-10)
+        
         # Append metrics after each episode
-        rewards.append(total_reward/steps)
+        rewards.append(total_sum)
+
+        # Run an episode
+        # while not done:
+        #     action, _states = model.predict(state, deterministic=False)
+        #     print("ACTION IS: ",action)
+        #     state, reward, done, truncated, _ = env.step(action)
+        #     done = done or truncated  # Combine done and truncated
+        #     total_reward += reward
+        #     steps += 1
+        #     env.render()
+
+        # # Append metrics after each episode
+        # rewards.append(total_reward/steps)
         surplus_metrics.append(state[0])  # Tons Surplus remaining
         emissions_metrics.append(state[2])  # CO2 emissions remaining
         episode_lengths.append(steps)
